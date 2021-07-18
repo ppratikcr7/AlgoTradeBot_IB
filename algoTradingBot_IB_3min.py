@@ -132,7 +132,7 @@ while TimeNow <= EndTime:
                 [ticker] = ib.reqTickers(option_contract)
                 print("ticker: ", ticker)
                 # Take the last traded price of ticker:
-                CurrentValue = ticker.last
+                CurrentValue = ticker.close
                 print("current last traded price value of the ticker: ", CurrentValue)
                 dps = str(ib.reqContractDetails(option_contract)[0].minTick + 1)[::-1].find('.') - 1
                 lmtPrice = round(CurrentValue - ib.reqContractDetails(option_contract)[0].minTick * 2,dps)
@@ -218,7 +218,7 @@ while TimeNow <= EndTime:
                 [ticker] = ib.reqTickers(option_contract)
                 print("ticker: ", ticker)
                 # Take the last traded price of ticker:
-                CurrentValue = ticker.last
+                CurrentValue = ticker.close
                 print("current last traded price value of the ticker: ", CurrentValue)
                 dps = str(ib.reqContractDetails(option_contract)[0].minTick + 1)[::-1].find('.') - 1
                 lmtPrice = round(CurrentValue - ib.reqContractDetails(option_contract)[0].minTick * 2,dps)

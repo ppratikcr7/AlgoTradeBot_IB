@@ -42,7 +42,7 @@ market_data = pd.DataFrame(
             stock,
             endDateTime='',
             durationStr='1 D',
-            barSizeSetting='1 mins',
+            barSizeSetting='1 min',
             whatToShow="TRADES",
             useRTH=True,
             formatDate=1,
@@ -53,8 +53,14 @@ print("Market data: ", market_data)
 
 # last candle close, 4EMA and 55EMA values:
 last_close = market_data['close'].iloc[-1]
-vwap = VolumeWeightedAveragePrice(market_data['close']).iloc[-1]
 
+def VWAPFunction(dataframe, label='vwap', window=3, fillna=True):
+        dataframe[label] = VolumeWeightedAveragePrice(high=dataframe['high'], low=dataframe['low'], close=dataframe["close"], volume=dataframe['volume'], window=window, fillna=fillna).volume_weighted_average_price()
+        return dataframe
+
+
+vwap_series = VWAPFunction(market_data)
+vwap = vwap_series['vwap'].iloc[-1]
 print("last close: ", last_close)
 print("vwap: ", vwap)
 
@@ -65,12 +71,12 @@ TimeNow = pd.to_datetime(ib.reqCurrentTime()).tz_convert('America/New_York')
 EndTime = pd.to_datetime("16:30").tz_localize('America/New_York')
 
 # Waiting for Market to Open
-if StartTime > TimeNow:
-    wait = (StartTime - TimeNow).total_seconds()
-    print("Waiting for Market to Open..")
-    print(f"Sleeping for {wait} seconds")
-    time.sleep(wait)
-    time.sleep(3*60)
+# if StartTime > TimeNow:
+#     wait = (StartTime - TimeNow).total_seconds()
+#     print("Waiting for Market to Open..")
+#     print(f"Sleeping for {wait} seconds")
+#     time.sleep(wait)
+#     time.sleep(3*60)
 
 # Run the algorithm till the daily time frame exhausts:
 while TimeNow <= EndTime:
@@ -130,7 +136,7 @@ while TimeNow <= EndTime:
                 [ticker] = ib.reqTickers(option_contract)
                 print("ticker: ", ticker)
                 # Take the last traded price of ticker:
-                CurrentValue = ticker.last
+                CurrentValue = ticker.close
                 print("current last traded price value of the ticker: ", CurrentValue)
                 dps = str(ib.reqContractDetails(option_contract)[0].minTick + 1)[::-1].find('.') - 1
                 lmtPrice = round(CurrentValue - ib.reqContractDetails(option_contract)[0].minTick * 2,dps)
@@ -217,7 +223,7 @@ while TimeNow <= EndTime:
                 [ticker] = ib.reqTickers(option_contract)
                 print("ticker: ", ticker)
                 # Take the last traded price of ticker:
-                CurrentValue = ticker.last
+                CurrentValue = ticker.close
                 print("current last traded price value of the ticker: ", CurrentValue)
                 dps = str(ib.reqContractDetails(option_contract)[0].minTick + 1)[::-1].find('.') - 1
                 lmtPrice = round(CurrentValue - ib.reqContractDetails(option_contract)[0].minTick * 2,dps)
