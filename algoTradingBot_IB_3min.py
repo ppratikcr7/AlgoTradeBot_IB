@@ -67,12 +67,12 @@ TimeNow = pd.to_datetime(ib.reqCurrentTime()).tz_convert('America/New_York')
 EndTime = pd.to_datetime("16:30").tz_localize('America/New_York')
 
 # Waiting for Market to Open
-# if StartTime > TimeNow:
-#     wait = (StartTime - TimeNow).total_seconds()
-#     print("Waiting for Market to Open..")
-#     print(f"Sleeping for {wait} seconds")
-#     time.sleep(wait)
-#     time.sleep(3*60)
+if StartTime > TimeNow:
+    wait = (StartTime - TimeNow).total_seconds()
+    print("Waiting for Market to Open..")
+    print(f"Sleeping for {wait} seconds")
+    time.sleep(wait)
+    time.sleep(3*60)
 
 # Run the algorithm till the daily time frame exhausts:
 while TimeNow <= EndTime:
@@ -127,7 +127,7 @@ while TimeNow <= EndTime:
                 print("first ITM contract from strike: ", option_contracts[0])
                 option_contract = option_contracts[0]
                 # Switch to live (1) frozen (2) delayed (3) delayed frozen (4).
-                ib.reqMarketDataType(4)
+                ib.reqMarketDataType(1)
                 # Then get the ticker.
                 [ticker] = ib.reqTickers(option_contract)
                 print("ticker: ", ticker)
@@ -174,8 +174,7 @@ while TimeNow <= EndTime:
     '''
     print("checking for short entry condition.")
     if order_status[0] == 0 and order_status[2] == 0:
-        if 1:
-        # last_close < ema_value_4 and ema_value_4 < ema_value_55:
+        if last_close < ema_value_4 and ema_value_4 < ema_value_55:
             print("Checking for Open Short Sell Positions..\n")
             order_status[0] == 1
             print("Trading Short")
@@ -245,7 +244,7 @@ while TimeNow <= EndTime:
     # Check if open order and long entry exists and we meet exit condition:
     if order_status[0] == 1 and order_status[2] == 1 and ema_value_4 > ema_value_55:
         ib.cancelOrder(entry_order)
-        print("Exiting the Long Trade!")
+        print("Exiting the Short Trade!")
         order_status[0] == 0
         order_status[2] == 0
 

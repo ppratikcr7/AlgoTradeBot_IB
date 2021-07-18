@@ -3,7 +3,7 @@ from ib_insync import *
 from ib_insync.contract import Index, Option, Stock
 from ib_insync.ib import IB
 import pandas as pd
-from ta.trend import ema_indicator
+from ta.volume import VolumeWeightedAveragePrice
 
 # read parameters from csv:
 dataframe = pd.read_csv("Yaz_Trading_Bot_Parameters.csv")
@@ -35,14 +35,14 @@ def roundStrikePrice(x, base=5):
     return base * round(x/base)
 
 # Fetching historical data when market is closed for testing purpose and EMA values:
-# For 55 EMA and 4 EMA we need previous 55 and 4 candles of 15 min each,
+# For 55 EMA and 4 EMA we need previous 55 and 4 candles of 1 min each,
 # so they cant be obtained during only live real time market data, we need historical data as below:
 market_data = pd.DataFrame(
         ib.reqHistoricalData(
             stock,
             endDateTime='',
-            durationStr='4 D',
-            barSizeSetting='15 mins',
+            durationStr='1 D',
+            barSizeSetting='1 mins',
             whatToShow="TRADES",
             useRTH=True,
             formatDate=1,
@@ -53,12 +53,10 @@ print("Market data: ", market_data)
 
 # last candle close, 4EMA and 55EMA values:
 last_close = market_data['close'].iloc[-1]
-ema_value_4 = ema_indicator(market_data['close'], window=4).iloc[-1]
-ema_value_55 = ema_indicator(market_data['close'], window=55).iloc[-1]
+vwap = VolumeWeightedAveragePrice(market_data['close']).iloc[-1]
 
 print("last close: ", last_close)
-print("4EMA: ", ema_value_4)
-print("55EMA: ", ema_value_55)
+print("vwap: ", vwap)
 
 ## STARTING THE ALGORITHM ##
 # Time frame: 6.30 hrs
@@ -85,12 +83,12 @@ while TimeNow <= EndTime:
     Long Entry Condition.
     --------------------
     i.e. If last_close > 4ema > 55ema then CALL BUY contract:
-    Long Entry: the 15min Bar candle has closed ABOVE the 55EMA
+    Long Entry: the 1min Bar candle has closed ABOVE the 55EMA
     And If 4EMA > 55EMA; trade long
     '''
     print("checking for long entry condition.")
     if order_status[0] == 0 and order_status[1] == 0:
-        if last_close > ema_value_4 and ema_value_4 > ema_value_55:
+        if last_close > vwap:
             print("Checking for Open Buy Positions..\n")
             order_status[0] = 1
             ib.qualifyContracts(stock)
@@ -157,7 +155,7 @@ while TimeNow <= EndTime:
             print("long entry condition not met.")
 
     # Check if open order and long entry exists and we meet exit condition:
-    if order_status[0] == 1 and order_status[1] == 1 and ema_value_4 < ema_value_55:
+    if order_status[0] == 1 and order_status[1] == 1 and last_close < vwap:
         ib.cancelOrder(entry_order)
         print("Exiting the Long Trade!")
         order_status[0] == 0
@@ -169,12 +167,13 @@ while TimeNow <= EndTime:
     Short Entry Condition.
     --------------------
     # If last_close < 4ema < 55ema then PUT BUY contract
-    i.e. Short Entry: the 15min Bar candle has closed below the 55EMA
+    i.e. Short Entry: the 1min Bar candle has closed below the 55EMA
     and If 4EMA < 55EMA; trade short
     '''
     print("checking for short entry condition.")
     if order_status[0] == 0 and order_status[2] == 0:
-        if last_close < ema_value_4 and ema_value_4 < ema_value_55:
+        if last_close < vwap:
+        # last_close < ema_value_4 and ema_value_4 < ema_value_55:
             print("Checking for Open Short Sell Positions..\n")
             order_status[0] == 1
             print("Trading Short")
@@ -242,15 +241,15 @@ while TimeNow <= EndTime:
             print("short entry condition not met.")
 
     # Check if open order and long entry exists and we meet exit condition:
-    if order_status[0] == 1 and order_status[2] == 1 and ema_value_4 > ema_value_55:
+    if order_status[0] == 1 and order_status[2] == 1 and last_close > vwap:
         ib.cancelOrder(entry_order)
         print("Exiting the Short Trade!")
         order_status[0] == 0
         order_status[2] == 0
 
-    # Wait for 15 mins for next candle to form:
-    print("No condition met for this 15 min candle so waiting 15 mins for fetching the next candle.")
-    ib.sleep(900)
+    # Wait for 1 mins for next candle to form:
+    print("No condition met for this 1 min candle so waiting 1 min for fetching the next candle.")
+    ib.sleep(60)
     TimeNow = pd.to_datetime(ib.reqCurrentTime()).tz_convert('America/New_York')
 
 # Disconnect IB API service after market or trades over:
